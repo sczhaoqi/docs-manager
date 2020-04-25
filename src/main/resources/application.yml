@@ -1,0 +1,32 @@
+server:
+  port: 8080
+docs:
+  location:
+    path: D:/test/docs
+    zpath: D:/test/zip
+spring:
+  datasource:
+    url: jdbc:h2:file:D:/h2/docs-meta;AUTO_SERVER=TRUE
+    username: sa
+    password: 123456
+    schema: classpath*:db/init.sql
+    data: classpath*:db/data.sql
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  freemarker:
+    charset: UTF-8
+    suffix: .html
+  servlet:
+    multipart:
+      max-request-size: 100MB
+      max-file-size: 50MB
+logging:
+  level:
+    root: debug

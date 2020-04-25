@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>静态文档管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+                <el-menu-item index="1">文档管理</el-menu-item>
+                <el-menu-item index="2">元数据管理</el-menu-item>
+            </el-menu>
+        </el-header>
+        <el-main>
+            <el-row>
+                <el-col :span="3">项目列表
+                    <el-input
+                            placeholder="输入关键字进行过滤"
+                            v-model="filterText">
+                    </el-input>
+
+                    <el-tree
+                            class="filter-tree"
+                            :data="data"
+                            :props="defaultProps"
+                            default-expand-all
+                            :filter-node-method="filterNode"
+                            @node-click="redirectTo"
+                            ref="tree">
+                    </el-tree>
+                </el-col>
+                <el-col :span="21" style="padding-left:  20px;">
+                    <el-form :model="pform" class="demo-form-inline" status-icon :rules="rules" ref="pform" action>
+                        <el-form-item label="项目名称" prop="pname">
+                            <el-input v-model="pform.pname" placeholder="project"></el-input>
+                        </el-form-item>
+                        <el-form-item label="版本文件" prop="file">
+                            <el-input id="file" v-model="pform.file"  accept="application/x-zip-compressed" type="file"></el-input>                               >
+                            <i class="el-icon-upload"></i>
+                            <div class="el-upload__tip" slot="tip">只能上传未加密zip文件</div>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="onSubmit('pform')">提交</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-col>
+            </el-row>
+        </el-main>
+    </el-container>
+</div>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script>
+const Home = { template:'#home-tab'}
+const routes = [
+    { path: '/', component: Home },
+]
+const router = new VueRouter({
+    routes
+})
+const app =  new Vue({
+    router,
+    watch: {
+        filterText(val) {
+            this.$refs.tree.filter(val);
+        }
+    },
+    data:() => {
+        var validateName = (rule, value, callback) => {
+            if (value === '') {
+                callback(new Error('请输入项目名称'));
+            } else {
+                callback();
+            }
+        }
+        var validateFile = (rule, value, callback) => {
+            console.log(value)
+            console.log(this)
+            if (!value) {
+                callback(new Error('请选择文件'));
+            } else {
+                callback();
+            }
+        }
+        return {
+            activeIndex: '1',
+            visible: false ,
+            filterText: '',
+            pform:{
+              pname:'',
+              file:undefined
+            },
+            rules: {
+                pname: [
+                    { validator: validateName, trigger: 'blur' }
+                ],
+                file: [
+                    { validator: validateFile, trigger: 'blur' }
+                ],
+            },
+            data: [],
+            defaultProps: {
+                children: 'children',
+                label: 'label'
+            }
+        }
+    },
+    mounted(){
+        axios('/list').then(res => {
+            console.log(res)
+            this.data = res.data;
+        })
+    },
+    methods: {
+        upFileCheck(file) {
+            const isZip = file.type === 'zip';
+            console.log(file)
+            if (!isZip) {
+                this.$message.error('上传头像图片只能是 zip格式!');
+            }
+            return isZip;
+        },
+        onSubmit(formName) {
+            let _this = this;
+            this.$refs[formName].validate((valid) => {
+                if (valid) {
+                    var fileObj =  document.getElementById('file').files[0]
+                    let FormDatas = new FormData()
+                    FormDatas.append('file',fileObj)
+                    FormDatas.append('name',_this.pform.pname)
+                    console.log(FormDatas)
+                    axios({
+                        method:'post',
+                        url:'/docs/upload',
+                        data:FormDatas,
+                        headers:{
+                            'Content-Type':'multipart/form-data'
+                        }
+
+                    }).then((res) =>{
+
+                    })
+                } else {
+                    console.log('error submit!!');
+                    return false;
+                }
+            });
+        },
+        redirectTo(node){
+            if(node.href){
+                let whref=window.location.href
+                let href=whref.substring(0,whref.substring(0,whref.lastIndexOf(this.$route.path)).lastIndexOf('/'))+node.href
+                window.open(href,'_blank')
+            }
+        },
+        filterNode(value, data) {
+            if (!value) return true;
+            return data.label.indexOf(value) !== -1;
+        },
+        handleSelect(index){
+            switch(index){
+                case '1':
+                default:
+                    this.$router.go(0)
+                    break
+                case '2':
+                    let routerJmp = this.$router.resolve({path: 'h2-console'});
+                    window.open(routerJmp.href,'_blank')
+                    break
+            }
+        }
+    }
+}).$mount('#app')
+</script>
+</body>
+
+</html>
